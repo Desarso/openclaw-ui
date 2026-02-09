@@ -1,0 +1,33 @@
+# OpenClaw UI + Gateway Proxy
+# Coolify will set the domain automatically
+
+:80 {
+    # Proxy WebSocket connections to the gateway
+    # The gateway handles WS on the root path
+    @websocket {
+        header Connection *Upgrade*
+        header Upgrade websocket
+    }
+    reverse_proxy @websocket {$GATEWAY_URL:http://192.168.1.115:18789} {
+        header_up Host {upstream_hostport}
+        header_up X-Forwarded-Host {host}
+        header_up X-Forwarded-Proto {scheme}
+    }
+
+    # Serve static UI files
+    root * /srv/ui
+    
+    # Try files, then fall back to index.html for SPA routing
+    try_files {path} /index.html
+    file_server
+    
+    # Security headers
+    header {
+        X-Frame-Options "DENY"
+        X-Content-Type-Options "nosniff"
+        Referrer-Policy "strict-origin-when-cross-origin"
+    }
+    
+    # Compress responses
+    encode gzip
+}
